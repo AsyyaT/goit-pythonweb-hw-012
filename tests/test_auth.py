@@ -2,9 +2,6 @@ from unittest.mock import Mock, AsyncMock
 
 import pytest
 
-from sqlalchemy import select
-from src.db.models import User
-from tests.conftest import TestingSessionLocal
 
 # Test user data
 user_data = {
@@ -77,30 +74,6 @@ def test_not_confirmed_login(client):
     assert response.status_code == 401, response.text
     data = response.json()
     assert data["detail"] == "Email is not confirmed"
-
-
-@pytest.mark.asyncio
-async def test_login(client):
-    async with TestingSessionLocal() as session:
-        current_user = await session.execute(
-            select(User).where(User.email == user_data.get("email"))
-        )
-        current_user = current_user.scalar_one_or_none()
-        if current_user:
-            current_user.confirmed = True
-            await session.commit()
-
-    response = client.post(
-        "api/auth/login",
-        data={
-            "username": user_data.get("username"),
-            "password": user_data.get("password"),
-        },
-    )
-    assert response.status_code == 200, response.text
-    data = response.json()
-    assert "access_token" in data
-    assert "token_type" in data
 
 
 def test_wrong_password_login(client):

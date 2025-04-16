@@ -60,7 +60,7 @@ async def test_get_contact_not_found(client, monkeypatch, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Contact not found"
-    mock_retrieve_contact.assert_called_once_with(999)
+    mock_retrieve_contact.assert_called_once_with(1, 999)
 
 
 @pytest.mark.asyncio
@@ -86,4 +86,4 @@ async def test_delete_contact_not_found(client, monkeypatch, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Contact not found."
-    mock_delete_contact.assert_called_once_with(contact_id)
+    mock_delete_contact.assert_called_once_with(1, contact_id)

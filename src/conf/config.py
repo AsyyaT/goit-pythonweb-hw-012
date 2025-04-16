@@ -9,7 +9,7 @@ class Config(BaseSettings):
     This class uses Pydantic's `BaseSettings` to parse and validate environment variables.
     It provides default values for some settings and supports reading from an `.env` file.
     """
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:5432/contacts"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:5432/contacts2"
     JWT_SECRET_KEY: str
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     JWT_ALGORITHM: str = "HS256"
@@ -35,6 +35,7 @@ class Config(BaseSettings):
     POSTGRES_PASSWORD: str = "your_password"
     POSTGRES_PORT: int = 5432
     POSTGRES_HOST: str = "localhost"
+    REDIS_HOST: str = "localhost"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
