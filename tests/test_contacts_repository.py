@@ -6,6 +6,8 @@ from src.db.models import User, Contact
 from src.repositories.contacts import ContactRepository
 from src.schemas import UserCreate, ContactModel
 
+USER_ID = 1
+
 
 @pytest.fixture
 def mock_session():
@@ -33,11 +35,11 @@ async def test_create_contact(contact_repository, mock_session):
 @pytest.mark.asyncio
 async def test_get_contact_by_id(contact_repository, mocker, mock_session):
 
-    mock_contact = Contact(id=1, first_name="Test", last_name="User", email="test@example.com")
+    mock_contact = Contact(id=1, first_name="Test", last_name="User", email="test@example.com", user_id=USER_ID)
 
     mocker.patch.object(ContactRepository, "get_contact_by_id", new=mocker.AsyncMock(return_value=mock_contact))
 
-    result = await contact_repository.get_contact_by_id(1)
+    result = await contact_repository.get_contact_by_id(USER_ID, 1)
 
     assert result.id == 1
     assert result.first_name == "Test"
@@ -45,12 +47,12 @@ async def test_get_contact_by_id(contact_repository, mocker, mock_session):
 
 @pytest.mark.asyncio
 async def test_update_contact(contact_repository, mocker, mock_session):
-    mock_contact = Contact(id=1, first_name="Old", last_name="Name", email="old@example.com")
+    mock_contact = Contact(id=1, first_name="Old", last_name="Name", email="old@example.com", user_id=USER_ID)
 
     mocker.patch.object(ContactRepository, 'get_contact_by_id', return_value=mock_contact)
 
     updated_data = ContactModel(first_name="New", last_name="Name", email="new@example.com", phone_number="34567890", birthday_date="1990-01-01")
-    result = await contact_repository.update_contact(1, updated_data)
+    result = await contact_repository.update_contact(USER_ID, 1, updated_data)
 
     assert result.first_name == "New"
     assert result.email == "new@example.com"
@@ -60,11 +62,11 @@ async def test_update_contact(contact_repository, mocker, mock_session):
 
 @pytest.mark.asyncio
 async def test_remove_contact(contact_repository, mocker, mock_session):
-    mock_contact = Contact(id=1, email="del@example.com")
+    mock_contact = Contact(id=1, email="del@example.com", user_id=USER_ID)
 
     mocker.patch.object(ContactRepository, 'get_contact_by_id', return_value=mock_contact)
 
-    result = await contact_repository.remove_contact(1)
+    result = await contact_repository.remove_contact(USER_ID, 1)
 
     assert result.email == "del@example.com"
     mock_session.delete.assert_called_with(mock_contact)
@@ -78,6 +80,6 @@ async def test_does_contact_exist_non_existing_contact(contact_repository, mock_
 
     mock_session.execute = mock_execute
 
-    result = await contact_repository.does_contact_exist("nonexistent@example.com", "9876543210")
+    result = await contact_repository.does_contact_exist(USER_ID, "nonexistent@example.com", "9876543210")
 
     assert result is False

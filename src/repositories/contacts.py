@@ -10,7 +10,7 @@ class ContactRepository:
     """
     Repository class for managing contacts in the database.
 
-    This class provides methods for CRUD operations and other specific queries 
+    This class provides methods for CRUD operations and other specific queries
     related to the `Contact` model.
 
     Attributes:
@@ -27,12 +27,13 @@ class ContactRepository:
         self._db_session = session
 
     async def get_contacts(
-        self, first_name: str, last_name: str, email: str, skip: int, limit: int
+        self, user_id: int, first_name: str, last_name: str, email: str, skip: int, limit: int
     ) -> List[Contact]:
         """
         Retrieve a list of contacts based on search criteria.
 
         Args:
+            user_id (int): Filter by user_id.
             first_name (str): Filter by first name (substring match).
             last_name (str): Filter by last name (substring match).
             email (str): Filter by email (substring match).
@@ -42,8 +43,10 @@ class ContactRepository:
         Returns:
             List[Contact]: A list of contacts matching the search criteria.
         """
+
         query = (
             select(Contact)
+            .where(Contact.user_id == user_id)
             .where(Contact.first_name.contains(first_name))
             .where(Contact.last_name.contains(last_name))
             .where(Contact.email.contains(email))
@@ -53,17 +56,18 @@ class ContactRepository:
         result = await self._db_session.execute(query)
         return list(result.scalars().all())
 
-    async def get_contact_by_id(self, contact_id: int) -> Optional[Contact]:
+    async def get_contact_by_id(self, user_id: int, contact_id: int) -> Optional[Contact]:
         """
         Retrieve a contact by its ID.
 
         Args:
+            user_id (int): The ID of the user.
             contact_id (int): The ID of the contact.
 
         Returns:
             Optional[Contact]: The contact if found, or `None` if not found.
         """
-        query = select(Contact).filter_by(id=contact_id)
+        query = select(Contact).filter_by(user_id=user_id, id=contact_id)
         result = await self._db_session.execute(query)
         return result.scalar_one_or_none()
 
@@ -83,18 +87,19 @@ class ContactRepository:
         await self._db_session.refresh(new_contact)
         return new_contact
 
-    async def update_contact(self, contact_id: int, body: ContactModel) -> Optional[Contact]:
+    async def update_contact(self, user_id: int, contact_id: int, body: ContactModel) -> Optional[Contact]:
         """
         Update an existing contact.
 
         Args:
+            user_id (int): The ID of the user.
             contact_id (int): The ID of the contact to update.
             body (ContactModel): The updated contact data.
 
         Returns:
             Optional[Contact]: The updated contact if it exists, or `None` if not found.
         """
-        contact = await self.get_contact_by_id(contact_id)
+        contact = await self.get_contact_by_id(user_id, contact_id)
         if not contact:
             return None
         update_data = body.model_dump(exclude_unset=True)
@@ -104,7 +109,7 @@ class ContactRepository:
         await self._db_session.refresh(contact)
         return contact
 
-    async def remove_contact(self, contact_id: int) -> Optional[Contact]:
+    async def remove_contact(self, user_id: int, contact_id: int) -> Optional[Contact]:
         """
         Remove a contact by its ID.
 
@@ -114,24 +119,25 @@ class ContactRepository:
         Returns:
             Optional[Contact]: The deleted contact if it exists, or `None` if not found.
         """
-        contact = await self.get_contact_by_id(contact_id)
+        contact = await self.get_contact_by_id(user_id, contact_id)
         if contact:
             await self._db_session.delete(contact)
             await self._db_session.commit()
         return contact
 
-    async def does_contact_exist(self, email: str, phone_number: str) -> bool:
+    async def does_contact_exist(self, user_id: int, email: str, phone_number: str) -> bool:
         """
         Check if a contact exists with the given email or phone number.
 
         Args:
+            user_id (str): The user id.
             email (str): The email address to check.
             phone_number (str): The phone number to check.
 
         Returns:
             bool: `True` if the contact exists, otherwise `False`.
         """
-        query = select(Contact).where(
+        query = select(Contact).filter_by(user_id=user_id).where(
             or_(Contact.email == email, Contact.phone_number == phone_number)
         )
 
@@ -141,11 +147,12 @@ class ContactRepository:
         except Exception as e:
             return False
 
-    async def get_upcoming_birthdays(self, days: int) -> List[Contact]:
+    async def get_upcoming_birthdays(self, user_id: int, days: int) -> List[Contact]:
         """
         Retrieve contacts with upcoming birthdays within a specified number of days.
 
         Args:
+            user_id (int): The ID of user.
             days (int): The number of days to look ahead for upcoming birthdays.
 
         Returns:
@@ -155,7 +162,7 @@ class ContactRepository:
         end_date = today + timedelta(days=days)
 
         query = (
-            select(Contact)
+            select(Contact).filter_by(user_id=user_id)
             .where(
                 or_(
                     func.date_part("day", Contact.birthday_date).between(

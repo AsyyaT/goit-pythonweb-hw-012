@@ -11,6 +11,8 @@ from src.db.db import get_db
 from src.conf.config import config
 from src.services.users import UserService
 from src.db.models import User, Role
+import json
+from src.conf.redis_client import redis_client
 
 
 class Hash:
@@ -113,10 +115,16 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
+    cached_user = await redis_client.get(f"user:{username}")
+    if cached_user:
+        return User(**json.loads(cached_user))
+
     user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
     if not user:
         raise credentials_exception
+
+    await redis_client.set(f"user:{username}", json.dumps(user.id), ex=3600)
     return user
 
 

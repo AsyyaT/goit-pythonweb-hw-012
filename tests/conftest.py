@@ -11,7 +11,7 @@ from main import app
 from src.db.models import Base, User, Contact
 from src.db.db import get_db
 from src.schemas import ContactModel
-from src.services.auth import create_access_token, Hash
+from src.services.auth import create_access_token, Hash, get_current_user
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -122,7 +122,11 @@ def client():
                 await session.rollback()
                 raise
 
+    def override_get_current_user():
+        return User(id=1, username='test', email='test@test.com', avatar='test_avatar.png')
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     yield TestClient(app)
 

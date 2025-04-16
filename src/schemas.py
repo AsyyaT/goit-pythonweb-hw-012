@@ -51,7 +51,7 @@ class User(BaseModel):
     """
     id: int
     username: str
-    email: str
+    email: EmailStr = Field(min_length=7, max_length=80)
     avatar: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -67,7 +67,7 @@ class UserCreate(BaseModel):
         password (str): The password of the new user.
     """
     username: str
-    email: str
+    email: EmailStr = Field(min_length=7, max_length=80)
     password: str
 
 

@@ -1,6 +1,10 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
+
+from src.conf.redis_client import redis_client
 from src.schemas import UserCreate, Token, User, RequestEmail, ResetPassword
 from src.services.email import send_email_confirmation, send_reset_password_email
 from src.services.auth import create_access_token, Hash, get_email_from_token, get_password_from_token
@@ -93,27 +97,11 @@ async def login_user(
             detail="Email is not confirmed",
         )
 
-    access_token = await create_access_token(data={"sub": user.username})
+    access_token = await create_access_token(data={"sub": user.username, "user_id": user.id})
+    print(user)
+    await redis_client.set(f"user:{user.username}", json.dumps(user.id), ex=3600)
+
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-# @app.post("/refresh-token", response_model=TokenModel)
-# async def refresh_token(request: TokenRefreshRequest, db: Session = Depends(get_db)):
-#     user = verify_refresh_token(request.refresh_token, db)
-#     if user is None:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or expired refresh token",
-#         )
-#     new_access_token = await create_access_token(data={"sub": user.username})
-#     new_refresh_token = await create_refresh_token(data={"sub": user.username})
-#     user.refresh_token = new_refresh_token
-#     db.commit()
-#     return {
-#         "access_token": new_access_token,
-#         "refresh_token": new_refresh_token,
-#         "token_type": "bearer",
-#     }
 
 
 @router.get("/confirmed_email/{token}")

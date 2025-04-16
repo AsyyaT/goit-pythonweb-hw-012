@@ -25,11 +25,12 @@ class ContactService:
         """
         self._repository = ContactRepository(db)
 
-    async def create_contact(self, data: ContactModel):
+    async def create_contact(self, user_id: int, data: ContactModel):
         """
         Create a new contact.
 
         Args:
+            user_id: Request user.
             data (ContactModel): The contact data to create.
 
         Returns:
@@ -38,7 +39,7 @@ class ContactService:
         Raises:
             HTTPException: If a contact with the same email or phone number already exists.
         """
-        existing_contact = await self._repository.does_contact_exist(data.email, data.phone_number)
+        existing_contact = await self._repository.does_contact_exist(user_id, data.email, data.phone_number)
         if existing_contact:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -47,12 +48,13 @@ class ContactService:
         return await self._repository.create_contact(data)
 
     async def list_contacts(
-        self, first_name: str = "", last_name: str = "", email: str = "", skip: int = 0, limit: int = 100
+        self, user_id: int, first_name: str = "", last_name: str = "", email: str = "", skip: int = 0, limit: int = 100
     ):
         """
         Retrieve a list of contacts with optional filters.
 
         Args:
+            user_id (str): Filter by user ID.
             first_name (str): Filter by first name (substring match). Default is "".
             last_name (str): Filter by last name (substring match). Default is "".
             email (str): Filter by email (substring match). Default is "".
@@ -62,14 +64,15 @@ class ContactService:
         Returns:
             List[Contact]: A list of contacts matching the filters.
         """
-        filters = {"first_name": first_name, "last_name": last_name, "email": email}
+        filters = {"user_id": user_id, "first_name": first_name, "last_name": last_name, "email": email}
         return await self._repository.get_contacts(**filters, skip=skip, limit=limit)
 
-    async def retrieve_contact(self, contact_id: int):
+    async def retrieve_contact(self, user_id: int,  contact_id: int):
         """
         Retrieve a contact by its ID.
 
         Args:
+            user_id (int): The ID of the contact to retrieve.
             contact_id (int): The ID of the contact to retrieve.
 
         Returns:
@@ -78,7 +81,7 @@ class ContactService:
         Raises:
             HTTPException: If no contact exists with the given ID.
         """
-        contact = await self._repository.get_contact_by_id(contact_id)
+        contact = await self._repository.get_contact_by_id(user_id, contact_id)
         if not contact:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -86,11 +89,12 @@ class ContactService:
             )
         return contact
 
-    async def modify_contact(self, contact_id: int, data: ContactModel):
+    async def modify_contact(self, user_id: int, contact_id: int, data: ContactModel):
         """
         Update an existing contact.
 
         Args:
+            user_id (int): The ID of the user.
             contact_id (int): The ID of the contact to update.
             data (ContactModel): The new contact data.
 
@@ -100,7 +104,7 @@ class ContactService:
         Raises:
             HTTPException: If the contact does not exist or cannot be updated.
         """
-        updated_contact = await self._repository.update_contact(contact_id, data)
+        updated_contact = await self._repository.update_contact(user_id, contact_id, data)
         if not updated_contact:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -108,11 +112,12 @@ class ContactService:
             )
         return updated_contact
 
-    async def delete_contact(self, contact_id: int):
+    async def delete_contact(self, user_id: int, contact_id: int):
         """
         Delete a contact by its ID.
 
         Args:
+            user_id (int): The ID of the user.
             contact_id (int): The ID of the contact to delete.
 
         Returns:
@@ -121,7 +126,7 @@ class ContactService:
         Raises:
             HTTPException: If the contact does not exist or cannot be deleted.
         """
-        deleted_contact = await self._repository.remove_contact(contact_id)
+        deleted_contact = await self._repository.remove_contact(user_id, contact_id)
         if not deleted_contact:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -129,14 +134,15 @@ class ContactService:
             )
         return deleted_contact
 
-    async def list_upcoming_birthdays(self, days: int):
+    async def list_upcoming_birthdays(self, user_id: int, days: int):
         """
         Retrieve a list of contacts with upcoming birthdays within a specified number of days.
 
         Args:
+            user_id (int): The ID of user.
             days (int): The number of days to look ahead for upcoming birthdays.
 
         Returns:
             List[Contact]: A list of contacts with upcoming birthdays.
         """
-        return await self._repository.get_upcoming_birthdays(days)
+        return await self._repository.get_upcoming_birthdays(user_id, days)
